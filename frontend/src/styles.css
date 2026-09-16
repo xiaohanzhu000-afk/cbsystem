@@ -1,0 +1,128 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    Arial, sans-serif;
+  background: #f5f7fa;
+  color: #1f2d3d;
+}
+
+.page {
+  padding: 4px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  color: #1f2d3d;
+}
+
+/* 图片相关 */
+.thumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.thumb-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #ebeef5;
+  background: #fafafa;
+}
+
+.thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb-item .el-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.thumb-item .thumb-del {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-bottom-left-radius: 6px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.thumb-item .thumb-del:hover {
+  background: #f56c6c;
+}
+
+.thumb-add {
+  width: 64px;
+  height: 64px;
+  border: 1px dashed #c0c4cc;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #909399;
+  font-size: 12px;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s;
+}
+
+.thumb-add:hover {
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.paste-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 6px;
+}
+
+.muted {
+  color: #c0c4cc;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
