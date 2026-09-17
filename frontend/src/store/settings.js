@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import api from '../api'
 
-export const DEFAULT_SITE_NAME = '未完成 CB 后台管理系统'
+export const DEFAULT_SITE_NAME = 'CB后台管理系统'
 
 export const siteName = ref(DEFAULT_SITE_NAME)
 
