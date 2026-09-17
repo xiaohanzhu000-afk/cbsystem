@@ -64,6 +64,8 @@ FAVORITE_COLUMNS = (
     "created_at",
     "updated_at",
 )
+# test_url 在库里是 JSON 数组字符串（收藏内链可存多条），这里按原样导出、
+# 原样写回；老数据包里的单条裸网址也能兼容，不额外做转换。
 SITE_COLUMNS = (
     "id",
     "url",
@@ -73,6 +75,7 @@ SITE_COLUMNS = (
     "downloadable",
     "status",
     "remark",
+    "sort",
     "created_at",
     "updated_at",
 )
@@ -113,7 +116,7 @@ def build_backup() -> bytes:
             conn,
             """
             SELECT id, url, event_date, test_url, level, downloadable, status,
-                   remark, created_at, updated_at
+                   remark, sort, created_at, updated_at
             FROM sites ORDER BY id
             """,
         )
@@ -231,6 +234,8 @@ def _normalize_sites(rows: List[dict]) -> List[dict]:
         row["downloadable"] = 1 if _to_int(row.get("downloadable")) else 0
         if row.get("status") not in SITE_STATUSES:
             row["status"] = SITE_DEFAULT_STATUS
+        # 老数据包里没有 sort，补 0 即可（排序靠 id 兜底）
+        row["sort"] = _to_int(row.get("sort")) or 0
     return rows
 
 
@@ -353,8 +358,8 @@ def _replace_data(conn, groups, cb_rows, favorite_rows, site_rows) -> None:
     conn.executemany(
         """
         INSERT INTO sites (id, url, event_date, test_url, level, downloadable, status,
-                           remark, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                           remark, sort, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             (
@@ -366,6 +371,7 @@ def _replace_data(conn, groups, cb_rows, favorite_rows, site_rows) -> None:
                 r["downloadable"],
                 r["status"],
                 r["remark"],
+                r["sort"] or 0,
                 r["created_at"],
                 r["updated_at"],
             )
@@ -402,7 +408,7 @@ def restore_backup(raw: bytes) -> dict:
             _clean_records(
                 manifest.get("sites"),
                 SITE_COLUMNS,
-                {"id", "level", "downloadable"},
+                {"id", "level", "downloadable", "sort"},
                 required="url",
             )
         )

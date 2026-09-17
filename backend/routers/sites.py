@@ -4,12 +4,15 @@
 
 - ``url``：主网址，列表里渲染成超链接，新窗口打开
 - ``event_date``：「创建日期」，默认当天，允许修改
-- ``test_url``：测试内链，同样是超链接，可为空
+- ``test_url``：收藏内链，可存多条（最多 ``MAX_TEST_URLS`` 条）。
+  库里放的是 JSON 数组字符串，对外统一暴露成 ``test_urls`` 列表
 - ``level``：作用级别，1 - 5
-- ``downloadable``：是否提供下载
+- ``downloadable``：是否支持下载
 - ``status``：正常 / 作废，作废后可以通过「恢复」改回正常
 - ``remark``：备注
+- ``sort``：排序权重，越大越靠前；新建和「移到最前」都会把它顶到最大值之上
 """
+import json
 import re
 from typing import List, Optional
 from urllib.parse import urlparse
@@ -33,6 +36,7 @@ from oplog import (
     ACTION_SITE_DELETE,
     ACTION_SITE_DISABLE,
     ACTION_SITE_ENABLE,
+    ACTION_SITE_MOVE_TOP,
     ACTION_SITE_UPDATE,
     write_log,
 )
@@ -43,6 +47,8 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 MAX_URL_LEN = 500
 MAX_REMARK_LEN = 500
+# 收藏内链最多几条。列表里只展示第一条，其余收进「+N」，避免一行被长网址撑开
+MAX_TEST_URLS = 10
 
 # 带协议头的样子；裸域名（example.com）会在 clean_url 里补上 https://
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://")
@@ -55,7 +61,7 @@ NETLOC_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9.\-]*[a-zA-Z0-9])?(:\d{1,5})?$")
 class SitePayload(BaseModel):
     url: str = Field(..., min_length=1, max_length=MAX_URL_LEN)
     event_date: str = ""
-    test_url: str = ""
+    test_urls: List[str] = Field(default_factory=list)
     level: int = SITE_LEVEL_MIN
     downloadable: bool = False
     status: str = SITE_DEFAULT_STATUS
@@ -130,6 +136,47 @@ def _clean_remark(value: Optional[str]) -> str:
     return text
 
 
+def _dump_test_urls(values: Optional[List[str]]) -> str:
+    """校验并序列化「收藏内链」：逐条走 clean_url，空串和重复项直接丢掉。"""
+    result: List[str] = []
+    for item in values or []:
+        url = clean_url(item, "收藏内链", required=False)
+        if url and url not in result:
+            result.append(url)
+    if len(result) > MAX_TEST_URLS:
+        raise HTTPException(status_code=400, detail=f"收藏内链最多 {MAX_TEST_URLS} 条")
+    return json.dumps(result, ensure_ascii=False)
+
+
+def parse_test_urls(raw) -> List[str]:
+    """把库里的 test_url 还原成列表。
+
+    新数据存的是 JSON 数组；历史数据和旧数据包里可能是单条裸网址，
+    这时按「只有一条」处理，保证升级后老数据不会凭空消失。
+    """
+    if isinstance(raw, (list, tuple)):
+        values = list(raw)
+    else:
+        text = str(raw or "").strip()
+        if not text:
+            return []
+        if not text.startswith("["):
+            return [text]
+        try:
+            values = json.loads(text)
+        except json.JSONDecodeError:
+            return [text]
+        if not isinstance(values, list):
+            return [text]
+
+    result: List[str] = []
+    for item in values:
+        text = str(item or "").strip()
+        if text and text not in result:
+            result.append(text)
+    return result
+
+
 def _log_target(url: str) -> str:
     """日志里去掉协议头：`https://example.com/a` 记成 `example.com/a`，更好读。"""
     return SCHEME_RE.sub("", url)
@@ -141,6 +188,8 @@ def _decode(row) -> dict:
     item["level"] = int(row["level"] or SITE_LEVEL_MIN)
     item["event_date"] = row["event_date"] or ""
     item["status"] = row["status"] or SITE_DEFAULT_STATUS
+    # 库里存的是 JSON 数组，对外只暴露解析好的列表
+    item["test_urls"] = parse_test_urls(item.pop("test_url", ""))
     return item
 
 
@@ -176,7 +225,7 @@ def list_sites(page: int = 1, page_size: int = 20, keyword: str = "", status: st
                    remark, created_at, updated_at
             FROM sites
             {where_sql}
-            ORDER BY id DESC
+            ORDER BY sort DESC, id DESC
             LIMIT ? OFFSET ?
             """,
             params + [page_size, (page - 1) * page_size],
@@ -194,7 +243,7 @@ def list_sites(page: int = 1, page_size: int = 20, keyword: str = "", status: st
 @router.post("")
 def create_site(payload: SitePayload):
     url = clean_url(payload.url)
-    test_url = clean_url(payload.test_url, "测试内链", required=False)
+    test_url = _dump_test_urls(payload.test_urls)
     level = _clean_level(payload.level)
     status = _clean_status(payload.status)
     remark = _clean_remark(payload.remark)
@@ -207,11 +256,13 @@ def create_site(payload: SitePayload):
             raise HTTPException(status_code=400, detail="该网址已存在")
 
         created = now_str()
+        # 新记录排在列表最前：sort 取当前最大值 + 1
+        top = conn.execute("SELECT COALESCE(MAX(sort), 0) AS m FROM sites").fetchone()["m"]
         cur = conn.execute(
             """
             INSERT INTO sites (url, event_date, test_url, level, downloadable, status,
-                               remark, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               remark, sort, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 url,
@@ -221,6 +272,7 @@ def create_site(payload: SitePayload):
                 1 if payload.downloadable else 0,
                 status,
                 remark,
+                int(top or 0) + 1,
                 created,
                 created,
             ),
@@ -235,7 +287,7 @@ def create_site(payload: SitePayload):
 @router.put("/{site_id}")
 def update_site(site_id: int, payload: SitePayload):
     url = clean_url(payload.url)
-    test_url = clean_url(payload.test_url, "测试内链", required=False)
+    test_url = _dump_test_urls(payload.test_urls)
     level = _clean_level(payload.level)
     status = _clean_status(payload.status)
     remark = _clean_remark(payload.remark)
@@ -306,6 +358,27 @@ def toggle_site_status(site_id: int):
         )
         conn.commit()
         return {"success": True, "status": target}
+    finally:
+        conn.close()
+
+
+@router.post("/{site_id}/move-top")
+def move_site_to_top(site_id: int):
+    """把一条网址提到列表最前：sort 取当前最大值 + 1，其余记录顺序不受影响。"""
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT id, url FROM sites WHERE id = ?", (site_id,)).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="网址不存在")
+
+        top = conn.execute("SELECT COALESCE(MAX(sort), 0) AS m FROM sites").fetchone()["m"]
+        conn.execute(
+            "UPDATE sites SET sort = ?, updated_at = ? WHERE id = ?",
+            (int(top or 0) + 1, now_str(), site_id),
+        )
+        write_log(conn, ACTION_SITE_MOVE_TOP, _log_target(row["url"]))
+        conn.commit()
+        return {"success": True}
     finally:
         conn.close()
 

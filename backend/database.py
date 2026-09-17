@@ -1,4 +1,5 @@
 """SQLite 数据库连接与初始化（使用 Python 内置 sqlite3）。"""
+import json
 import os
 import sqlite3
 from datetime import datetime
@@ -190,22 +191,24 @@ def init_db() -> None:
         # 网址管理：与 CB 相关的网址清单
         # url       主网址，列表里做成超链接新窗口打开
         # event_date「创建日期」，默认当天，可改
-        # test_url  测试内链，同样是超链接，可为空
+        # test_url  收藏内链，JSON 数组字符串，可存多条（列表里只展示第一条）
         # level     作用级别，1 - 5
-        # downloadable 是否提供下载，0/1
+        # downloadable 是否支持下载，0/1
         # status    正常 / 作废
         # remark    备注
+        # sort      排序权重，越大越靠前；「移到最前」就是顶到最大值之上
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS sites (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT NOT NULL DEFAULT '',
                 event_date TEXT NOT NULL DEFAULT '',
-                test_url TEXT NOT NULL DEFAULT '',
+                test_url TEXT NOT NULL DEFAULT '[]',
                 level INTEGER NOT NULL DEFAULT 1,
                 downloadable INTEGER NOT NULL DEFAULT 0,
                 status TEXT NOT NULL DEFAULT '正常',
                 remark TEXT NOT NULL DEFAULT '',
+                sort INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
@@ -222,8 +225,21 @@ def init_db() -> None:
                 "WHERE event_date IS NULL OR event_date = ''"
             )
 
-        # 网址管理是后加的菜单，remark 更是后补的字段，一并补齐
+        # 网址管理是后加的菜单，remark / sort 更是后补的字段，一并补齐
         _ensure_column(cur, "sites", "remark", "TEXT NOT NULL DEFAULT ''")
+        _ensure_column(cur, "sites", "sort", "INTEGER NOT NULL DEFAULT 0")
+
+        # 收藏内链原来只能存一条裸网址，现在改成 JSON 数组以支持多条。
+        # 这里把老值包成单元素数组，避免读出来时被当成一堆字符。
+        legacy_rows = cur.execute(
+            "SELECT id, test_url FROM sites "
+            "WHERE trim(test_url) <> '' AND substr(trim(test_url), 1, 1) <> '['"
+        ).fetchall()
+        for row in legacy_rows:
+            cur.execute(
+                "UPDATE sites SET test_url = ? WHERE id = ?",
+                (json.dumps([row["test_url"].strip()], ensure_ascii=False), row["id"]),
+            )
 
         # 站点设置：site_name（站点名称）、image_dir（图片存放目录）
         cur.execute(

@@ -4,24 +4,22 @@
       <div class="login-brand">
         <div class="logo">CB</div>
         <h1>{{ siteName }}</h1>
-        <p>Unfinished CB Management System</p>
+        <p>CB SYSTEM Management System</p>
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="onSubmit">
         <el-form-item prop="username">
           <el-input v-model="form.username" placeholder="请输入账号" clearable>
-            <template #prefix><el-icon><User /></el-icon></template>
+            <template #prefix><el-icon>
+                <User />
+              </el-icon></template>
           </el-input>
         </el-form-item>
         <el-form-item prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            placeholder="请输入密码"
-            show-password
-            @keyup.enter="onSubmit"
-          >
-            <template #prefix><el-icon><Lock /></el-icon></template>
+          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password @keyup.enter="onSubmit">
+            <template #prefix><el-icon>
+                <Lock />
+              </el-icon></template>
           </el-input>
         </el-form-item>
         <el-form-item>

@@ -41,6 +41,7 @@ ACTION_SITE_UPDATE = "修改网址"
 ACTION_SITE_DELETE = "删除网址"
 ACTION_SITE_DISABLE = "作废网址"
 ACTION_SITE_ENABLE = "恢复网址"
+ACTION_SITE_MOVE_TOP = "网址置顶"
 
 # 对象名过长时截断，避免一条日志被整段备注撑爆
 MAX_TARGET_LEN = 200
@@ -179,6 +180,7 @@ __all__ = [
     "ACTION_SITE_DELETE",
     "ACTION_SITE_DISABLE",
     "ACTION_SITE_ENABLE",
+    "ACTION_SITE_MOVE_TOP",
     "ACTION_SITE_UPDATE",
     "ACTION_UNFAVORITE",
     "clear_logs",

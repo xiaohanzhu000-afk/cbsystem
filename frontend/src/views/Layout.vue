@@ -5,33 +5,45 @@
         <div class="brand-logo">CB</div>
         <div class="brand-text">
           <div class="brand-title">{{ siteName }}</div>
-          <div class="brand-sub">Unfinished CB</div>
+          <div class="brand-sub">CB SYSTEM</div>
         </div>
       </div>
 
       <el-menu :default-active="activeMenu" router class="sidebar-menu">
         <el-menu-item index="/cb">
-          <el-icon><Document /></el-icon>
+          <el-icon>
+            <Document />
+          </el-icon>
           <span>CB管理</span>
         </el-menu-item>
         <el-menu-item index="/favorites">
-          <el-icon><Star /></el-icon>
+          <el-icon>
+            <Star />
+          </el-icon>
           <span>收藏记录</span>
         </el-menu-item>
         <el-menu-item index="/groups">
-          <el-icon><Files /></el-icon>
+          <el-icon>
+            <Files />
+          </el-icon>
           <span>分组管理</span>
         </el-menu-item>
         <el-menu-item index="/sites">
-          <el-icon><Link /></el-icon>
+          <el-icon>
+            <Link />
+          </el-icon>
           <span>网址管理</span>
         </el-menu-item>
         <el-menu-item index="/logs">
-          <el-icon><Tickets /></el-icon>
+          <el-icon>
+            <Tickets />
+          </el-icon>
           <span>日志记录</span>
         </el-menu-item>
         <el-menu-item index="/settings">
-          <el-icon><Setting /></el-icon>
+          <el-icon>
+            <Operation />
+          </el-icon>
           <span>网站设置</span>
         </el-menu-item>
       </el-menu>
@@ -45,7 +57,9 @@
             <span class="user">
               <el-avatar :size="28" class="avatar">{{ avatarText }}</el-avatar>
               <span class="username">{{ username }}</span>
-              <el-icon><ArrowDown /></el-icon>
+              <el-icon>
+                <ArrowDown />
+              </el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -76,7 +90,7 @@ import {
   Document,
   Files,
   Link,
-  Setting,
+  Operation,
   Star,
   Tickets,
 } from '@element-plus/icons-vue'
