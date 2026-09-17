@@ -16,7 +16,7 @@ os.makedirs(DEFAULT_IMAGE_DIR, exist_ok=True)
 
 DB_PATH = os.path.join(DATA_DIR, "app.db")
 
-DEFAULT_SITE_NAME = "未完成 CB 后台管理系统"
+DEFAULT_SITE_NAME = "CB后台管理系统"
 
 # 「网址管理」里状态的两种取值：正常 / 作废（作废后可以再恢复）
 SITE_STATUS_OK = "正常"

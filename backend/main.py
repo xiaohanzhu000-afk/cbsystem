@@ -1,4 +1,4 @@
-"""未完成 CB 后台管理系统 - FastAPI 入口。"""
+"""CB后台管理系统 - FastAPI 入口。"""
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="未完成 CB 后台管理系统", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="CB后台管理系统", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
