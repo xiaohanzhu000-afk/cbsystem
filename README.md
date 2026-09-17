@@ -1,6 +1,6 @@
-# 未完成 CB 后台管理系统
+# CB 后台管理系统
 
-用于管理「未完成 CB」的后台系统。
+用于管理「CB」的后台系统。
 
 - 后端：Python + FastAPI + sqlite3（Python 标准库 `sqlite3`，无 ORM）
 - 前端：Vue3 + Vite + Element Plus
